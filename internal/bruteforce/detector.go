@@ -3,6 +3,7 @@ package bruteforce
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -128,7 +129,7 @@ func (d *Detector) saveToJSON(attempts []LoginAttempt) error {
 		return fmt.Errorf("erro ao serializar JSON: %w", err)
 	}
 
-	if err := os.WriteFile(d.outputFilePath, data, 0644); err != nil {
+	if err := ioutil.WriteFile(d.outputFilePath, data, 0644); err != nil {
 		return fmt.Errorf("erro ao salvar arquivo JSON: %w", err)
 	}
 
