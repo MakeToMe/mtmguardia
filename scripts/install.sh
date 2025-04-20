@@ -72,13 +72,13 @@ else
     log "Usando token de autenticação fornecido"
 fi
 
+# Criar diretório de configuração
+mkdir -p /etc/guardian
+
 # Salvar o token em um arquivo seguro para referência futura
 TOKEN_FILE="/etc/guardian/auth_token.txt"
 echo "$TOKEN" > "$TOKEN_FILE"
 chmod 600 "$TOKEN_FILE" # Apenas root pode ler
-
-# Criar diretório de configuração
-mkdir -p /etc/guardian
 
 # Criar arquivo de configuração
 log "Criando arquivo de configuração..."
