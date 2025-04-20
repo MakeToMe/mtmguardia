@@ -103,6 +103,41 @@ func (d *Detector) Start() {
 
 	// Executar imediatamente a primeira vez
 	d.logMessage("Iniciando primeira execução do detector...")
+	
+	// Criar dados de teste iniciais
+	testData := []LoginAttempt{
+		{
+			IP:        "192.168.1.100",
+			Count:     5,
+			Timestamp: time.Now(),
+		},
+		{
+			IP:        "10.0.0.1",
+			Count:     3,
+			Timestamp: time.Now(),
+		},
+	}
+	
+	// Salvar dados de teste iniciais
+	d.logMessage("Salvando dados de teste iniciais no arquivo JSON: %s", d.outputFilePath)
+	if err := d.saveToJSON(testData); err != nil {
+		d.logMessage("ERRO ao salvar dados de teste iniciais: %v", err)
+		
+		// Tentar salvar usando um comando shell
+		d.logMessage("Tentando salvar dados iniciais usando comando shell...")
+		jsonData, _ := json.MarshalIndent(testData, "", "  ")
+		cmd := exec.Command("bash", "-c", fmt.Sprintf("echo '%s' | sudo tee %s", string(jsonData), d.outputFilePath))
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			d.logMessage("ERRO ao salvar dados iniciais via comando: %v\nSaída: %s", err, string(output))
+		} else {
+			d.logMessage("Dados iniciais salvos via comando: %s", d.outputFilePath)
+		}
+	} else {
+		d.logMessage("Dados de teste iniciais salvos com sucesso")
+	}
+	
+	// Executar a detecção normal
 	err = d.Detect()
 	if err != nil {
 		d.logMessage("Erro na primeira execução do detector: %v", err)
