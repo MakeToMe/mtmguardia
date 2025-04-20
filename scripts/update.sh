@@ -44,9 +44,9 @@ systemctl stop guardian || warn "Não foi possível parar o serviço Guardian"
 
 # Backup da configuração atual
 log "Fazendo backup da configuração..."
-if [ -f /etc/guardian/config.env ]; then
-    cp /etc/guardian/config.env /etc/guardian/config.env.bak
-    log "Backup criado em /etc/guardian/config.env.bak"
+if [ -f $INSTALL_DIR/config/config.env ]; then
+    cp $INSTALL_DIR/config/config.env $INSTALL_DIR/config/config.env.bak
+    log "Backup criado em $INSTALL_DIR/config/config.env.bak"
 fi
 
 # Atualizar o código
@@ -60,9 +60,18 @@ log "Recompilando o Guardian..."
 go build -o guardian cmd/guardian/main.go || error "Falha ao compilar o código"
 
 # Restaurar configuração
-if [ -f /etc/guardian/config.env.bak ]; then
+if [ -f $INSTALL_DIR/config/config.env.bak ]; then
     log "Restaurando configuração..."
-    cp /etc/guardian/config.env.bak /etc/guardian/config.env
+    cp $INSTALL_DIR/config/config.env.bak $INSTALL_DIR/config/config.env
+fi
+
+# Verificar e recriar o link simbólico se necessário
+if [ ! -L "/etc/guardian" ] || [ ! -d "/etc/guardian" ]; then
+    log "Recriando link simbólico para a configuração..."
+    if [ -e "/etc/guardian" ]; then
+        rm -rf /etc/guardian
+    fi
+    ln -s $INSTALL_DIR/config /etc/guardian
 fi
 
 # Reiniciar o serviço

@@ -52,7 +52,19 @@ apt-get install -y golang git ufw curl
 
 # Criar diretório de instalação
 INSTALL_DIR="/opt/guardian"
-mkdir -p $INSTALL_DIR
+
+# Verificar se o diretório já existe
+if [ -d "$INSTALL_DIR" ]; then
+    log "Diretório $INSTALL_DIR já existe."
+    log "Removendo instalação anterior..."
+    rm -rf "$INSTALL_DIR"
+    if [ $? -ne 0 ]; then
+        error "Não foi possível remover o diretório existente. Verifique as permissões."
+    fi
+fi
+
+# Criar diretório de instalação
+mkdir -p $INSTALL_DIR || error "Não foi possível criar o diretório de instalação"
 
 # Baixar o código do repositório
 log "Baixando o código fonte..."
@@ -72,17 +84,17 @@ else
     log "Usando token de autenticação fornecido"
 fi
 
-# Criar diretório de configuração
-mkdir -p /etc/guardian
+# Criar diretório de configuração dentro da pasta de instalação
+mkdir -p $INSTALL_DIR/config
 
 # Salvar o token em um arquivo seguro para referência futura
-TOKEN_FILE="/etc/guardian/auth_token.txt"
+TOKEN_FILE="$INSTALL_DIR/config/auth_token.txt"
 echo "$TOKEN" > "$TOKEN_FILE"
 chmod 600 "$TOKEN_FILE" # Apenas root pode ler
 
 # Criar arquivo de configuração
 log "Criando arquivo de configuração..."
-cat > /etc/guardian/config.env << EOF
+cat > $INSTALL_DIR/config/config.env << EOF
 GUARDIAN_IP=$IP
 GUARDIAN_PORT=4554
 GUARDIAN_AUTH_TOKEN=$TOKEN
@@ -103,7 +115,7 @@ WorkingDirectory=/opt/guardian
 ExecStart=/opt/guardian/guardian
 Restart=on-failure
 RestartSec=5
-EnvironmentFile=/etc/guardian/config.env
+EnvironmentFile=/opt/guardian/config/config.env
 
 [Install]
 WantedBy=multi-user.target
@@ -134,6 +146,13 @@ log "Instalação concluída!"
 log "Para visualizar os logs do serviço: journalctl -u guardian -f"
 log "Para reiniciar o serviço: systemctl restart guardian"
 log "Para parar o serviço: systemctl stop guardian"
+
+# Criar um link simbólico para facilitar o acesso à configuração
+if [ -d "/etc/guardian" ]; then
+    rm -rf /etc/guardian
+fi
+ln -s $INSTALL_DIR/config /etc/guardian
+log "Link simbólico criado em /etc/guardian apontando para $INSTALL_DIR/config"
 
 # Exibir informações sobre o token de autenticação
 echo ""
