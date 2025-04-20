@@ -56,7 +56,7 @@ mkdir -p $INSTALL_DIR
 
 # Baixar o código do repositório
 log "Baixando o código fonte..."
-git clone https://github.com/mtm/guardian.git $INSTALL_DIR || error "Falha ao baixar o código fonte"
+git clone https://github.com/MakeToMe/mtmguardia.git $INSTALL_DIR || error "Falha ao baixar o código fonte"
 
 # Compilar o código
 log "Compilando o Guardian..."
