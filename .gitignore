@@ -1,0 +1,27 @@
+# Binários compilados
+/guardian
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Arquivos de teste
+*.test
+*.out
+
+# Arquivos de configuração
+.env
+/config.env
+
+# Diretórios
+/vendor/
+/bin/
+/tmp/
+
+# Arquivos de log
+*.log
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
