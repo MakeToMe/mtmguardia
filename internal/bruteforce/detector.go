@@ -49,6 +49,15 @@ func (d *Detector) Start() {
 
 	fmt.Printf("Detector de força bruta iniciado. Arquivo de saída: %s\n", d.outputFilePath)
 
+	// Criar um arquivo JSON de teste simples
+	testFilePath := filepath.Join(dataDir, "test.json")
+	testContent := []byte("teste de json")
+	if err := ioutil.WriteFile(testFilePath, testContent, 0644); err != nil {
+		fmt.Printf("Erro ao criar arquivo de teste: %v\n", err)
+	} else {
+		fmt.Printf("Arquivo de teste criado com sucesso: %s\n", testFilePath)
+	}
+
 	// Executar imediatamente a primeira vez
 	err := d.Detect()
 	if err != nil {
@@ -71,15 +80,34 @@ func (d *Detector) Start() {
 
 // Detect executa a detecção de força bruta
 func (d *Detector) Detect() error {
+	// Criar um arquivo JSON com dados de teste
+	testData := []LoginAttempt{
+		{
+			IP:        "192.168.1.100",
+			Count:     5,
+			Timestamp: time.Now(),
+		},
+		{
+			IP:        "10.0.0.1",
+			Count:     3,
+			Timestamp: time.Now(),
+		},
+	}
+
+	// Salvar os dados de teste
+	fmt.Printf("Salvando dados de teste no arquivo JSON...\n")
+	if err := d.saveToJSON(testData); err != nil {
+		fmt.Printf("Erro ao salvar dados de teste: %v\n", err)
+		return err
+	}
+
 	// Executar comando para obter tentativas de login malsucedidas
+	fmt.Printf("Executando comando lastb...\n")
 	cmd := exec.Command("bash", "-c", "sudo lastb | awk '{ print $3 }' | sort | uniq -c | sort -nr")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Printf("Aviso: erro ao executar comando lastb: %v\n", err)
 		fmt.Printf("Saída do comando: %s\n", string(output))
-		// Criar um arquivo JSON vazio para evitar erros
-		emptyData, _ := json.MarshalIndent([]LoginAttempt{}, "", "  ")
-		ioutil.WriteFile(d.outputFilePath, emptyData, 0644)
 		return err
 	}
 
