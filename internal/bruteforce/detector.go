@@ -47,25 +47,40 @@ func (d *Detector) Start() {
 		return
 	}
 
+	fmt.Printf("Detector de força bruta iniciado. Arquivo de saída: %s\n", d.outputFilePath)
+
 	// Executar imediatamente a primeira vez
-	d.Detect()
+	err := d.Detect()
+	if err != nil {
+		fmt.Printf("Erro na primeira execução do detector: %v\n", err)
+	}
 
 	// Configurar ticker para executar a cada 5 minutos
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
 
+	fmt.Printf("Detector configurado para executar a cada 5 minutos\n")
+
 	for range ticker.C {
-		d.Detect()
+		err := d.Detect()
+		if err != nil {
+			fmt.Printf("Erro na execução do detector: %v\n", err)
+		}
 	}
 }
 
 // Detect executa a detecção de força bruta
 func (d *Detector) Detect() error {
 	// Executar comando para obter tentativas de login malsucedidas
-	cmd := exec.Command("bash", "-c", "lastb | awk '{ print $3 }' | sort | uniq -c | sort -nr")
+	cmd := exec.Command("bash", "-c", "sudo lastb | awk '{ print $3 }' | sort | uniq -c | sort -nr")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("erro ao executar comando lastb: %w", err)
+		fmt.Printf("Aviso: erro ao executar comando lastb: %v\n", err)
+		fmt.Printf("Saída do comando: %s\n", string(output))
+		// Criar um arquivo JSON vazio para evitar erros
+		emptyData, _ := json.MarshalIndent([]LoginAttempt{}, "", "  ")
+		ioutil.WriteFile(d.outputFilePath, emptyData, 0644)
+		return err
 	}
 
 	// Processar a saída
@@ -129,11 +144,21 @@ func (d *Detector) saveToJSON(attempts []LoginAttempt) error {
 		return fmt.Errorf("erro ao serializar JSON: %w", err)
 	}
 
+	// Garantir que o diretório existe
+	dataDir := filepath.Dir(d.outputFilePath)
+	if err := os.MkdirAll(dataDir, 0755); err != nil {
+		fmt.Printf("Erro ao criar diretório de dados: %v\n", err)
+	}
+
 	if err := ioutil.WriteFile(d.outputFilePath, data, 0644); err != nil {
-		return fmt.Errorf("erro ao salvar arquivo JSON: %w", err)
+		fmt.Printf("Erro ao salvar arquivo JSON: %v\n", err)
+		return err
 	}
 
 	fmt.Printf("Dados de força bruta salvos em %s (%d IPs detectados)\n", d.outputFilePath, len(attempts))
+	
+	// Mostrar o conteúdo do arquivo para debug
+	fmt.Printf("Conteúdo do arquivo JSON:\n%s\n", string(data))
 	return nil
 }
 
