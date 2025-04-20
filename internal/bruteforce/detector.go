@@ -169,39 +169,8 @@ func (d *Detector) Start() {
 
 // Detect executa a detecção de força bruta
 func (d *Detector) Detect() error {
-	// Criar um arquivo JSON com dados de teste
-	testData := []LoginAttempt{
-		{
-			IP:        "192.168.1.100",
-			Count:     5,
-			Timestamp: time.Now(),
-		},
-		{
-			IP:        "10.0.0.1",
-			Count:     3,
-			Timestamp: time.Now(),
-		},
-	}
-
-	// Salvar os dados de teste
-	d.logMessage("Tentando salvar dados de teste no arquivo JSON: %s", d.outputFilePath)
-	if err := d.saveToJSON(testData); err != nil {
-		d.logMessage("ERRO ao salvar dados de teste: %v", err)
-		
-		// Tentar salvar usando um comando shell
-		d.logMessage("Tentando salvar usando comando shell...")
-		jsonData, _ := json.MarshalIndent(testData, "", "  ")
-		cmd := exec.Command("bash", "-c", fmt.Sprintf("echo '%s' | sudo tee %s", string(jsonData), d.outputFilePath))
-		output, err := cmd.CombinedOutput()
-		if err != nil {
-			d.logMessage("ERRO ao salvar via comando: %v\nSaída: %s", err, string(output))
-		} else {
-			d.logMessage("Arquivo JSON salvo via comando: %s", d.outputFilePath)
-		}
-		return err
-	} else {
-		d.logMessage("Dados de teste salvos com sucesso no arquivo JSON")
-	}
+	// Não vamos mais salvar dados de teste aqui
+	// Vamos executar o comando lastb e usar dados reais
 
 	// Executar comando para obter tentativas de login malsucedidas
 	d.logMessage("Executando comando lastb...")
