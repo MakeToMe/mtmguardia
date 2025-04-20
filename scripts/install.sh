@@ -72,6 +72,11 @@ else
     log "Usando token de autenticação fornecido"
 fi
 
+# Salvar o token em um arquivo seguro para referência futura
+TOKEN_FILE="/etc/guardian/auth_token.txt"
+echo "$TOKEN" > "$TOKEN_FILE"
+chmod 600 "$TOKEN_FILE" # Apenas root pode ler
+
 # Criar diretório de configuração
 mkdir -p /etc/guardian
 
@@ -129,3 +134,18 @@ log "Instalação concluída!"
 log "Para visualizar os logs do serviço: journalctl -u guardian -f"
 log "Para reiniciar o serviço: systemctl restart guardian"
 log "Para parar o serviço: systemctl stop guardian"
+
+# Exibir informações sobre o token de autenticação
+echo ""
+echo "==================== INFORMAÇÕES DE AUTENTICAÇÃO ===================="
+echo "Token de autenticação: $TOKEN"
+echo "Este token foi salvo em: $TOKEN_FILE"
+echo "Para visualizar o token posteriormente, execute: cat $TOKEN_FILE"
+echo ""
+echo "Exemplo de uso da API:"
+echo "curl -X POST \\"
+echo "  -H \"Authorization: Bearer $TOKEN\" \\"
+echo "  -H \"Content-Type: application/json\" \\"
+echo "  -d '{\"acao\":\"banir\",\"ip\":\"192.168.1.100\"}' \\"
+echo "  http://$IP:4554/guardian"
+echo "================================================================="
