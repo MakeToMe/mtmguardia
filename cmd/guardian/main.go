@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/mtm/guardian/internal/api"
+	"github.com/mtm/guardian/internal/bruteforce"
 	"github.com/mtm/guardian/internal/config"
 	"github.com/mtm/guardian/internal/firewall"
 )
@@ -50,6 +51,10 @@ func main() {
 			log.Fatalf("Erro ao iniciar o servidor API: %v", err)
 		}
 	}()
+
+	// Iniciar o detector de força bruta
+	detector := bruteforce.NewDetector(cfg)
+	go detector.Start()
 
 	fmt.Printf("Guardian está em execução em http://%s:%d/guardian\n", cfg.IP, cfg.Port)
 

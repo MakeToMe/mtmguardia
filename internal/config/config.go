@@ -15,6 +15,7 @@ type Config struct {
 	Port         int
 	AuthToken    string
 	FirewallType string
+	InstallDir   string
 }
 
 // Load carrega as configurações do arquivo .env ou variáveis de ambiente
@@ -27,6 +28,7 @@ func Load() (*Config, error) {
 	cfg := &Config{
 		Port:         4554,
 		FirewallType: "auto", // auto, ufw, iptables
+		InstallDir:   "/opt/guardian",
 	}
 
 	// Obter IP automaticamente se não estiver definido
@@ -59,6 +61,11 @@ func Load() (*Config, error) {
 	// Tipo de firewall
 	if fwType := os.Getenv("GUARDIAN_FIREWALL_TYPE"); fwType != "" {
 		cfg.FirewallType = fwType
+	}
+
+	// Diretório de instalação
+	if installDir := os.Getenv("GUARDIAN_INSTALL_DIR"); installDir != "" {
+		cfg.InstallDir = installDir
 	}
 
 	return cfg, nil

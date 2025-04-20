@@ -84,8 +84,9 @@ else
     log "Usando token de autenticação fornecido"
 fi
 
-# Criar diretório de configuração dentro da pasta de instalação
+# Criar diretórios necessários dentro da pasta de instalação
 mkdir -p $INSTALL_DIR/config
+mkdir -p $INSTALL_DIR/data
 
 # Salvar o token em um arquivo seguro para referência futura
 TOKEN_FILE="$INSTALL_DIR/config/auth_token.txt"
@@ -99,6 +100,7 @@ GUARDIAN_IP=$IP
 GUARDIAN_PORT=4554
 GUARDIAN_AUTH_TOKEN=$TOKEN
 GUARDIAN_FIREWALL_TYPE=auto
+GUARDIAN_INSTALL_DIR=$INSTALL_DIR
 EOF
 
 # Criar serviço systemd
