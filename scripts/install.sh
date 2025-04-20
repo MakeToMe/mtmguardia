@@ -85,21 +85,44 @@ else
 fi
 
 # Criar diretórios necessários dentro da pasta de instalação
+log "Criando diretórios..."
 mkdir -p $INSTALL_DIR/config
 mkdir -p $INSTALL_DIR/data
 
 # Garantir permissões corretas para os diretórios
+log "Configurando permissões..."
 chmod -R 777 $INSTALL_DIR/data
-chown -R root:root $INSTALL_DIR
+ls -la $INSTALL_DIR/data
 
 # Criar arquivos iniciais
+log "Criando arquivos iniciais..."
 echo '[]' > $INSTALL_DIR/data/bruteforce.json
 echo 'teste de json' > $INSTALL_DIR/data/test.json
-chmod 666 $INSTALL_DIR/data/*.json
+
+# Verificar se os arquivos foram criados
+if [ ! -f "$INSTALL_DIR/data/bruteforce.json" ]; then
+    log "Tentando método alternativo para criar bruteforce.json..."
+    sudo bash -c "echo '[]' > $INSTALL_DIR/data/bruteforce.json"
+fi
+
+if [ ! -f "$INSTALL_DIR/data/test.json" ]; then
+    log "Tentando método alternativo para criar test.json..."
+    sudo bash -c "echo 'teste de json' > $INSTALL_DIR/data/test.json"
+fi
+
+# Definir permissões dos arquivos
+log "Definindo permissões dos arquivos..."
+chmod 666 $INSTALL_DIR/data/bruteforce.json || true
+chmod 666 $INSTALL_DIR/data/test.json || true
 
 # Criar arquivo de log vazio com permissões corretas
+log "Criando arquivo de log..."
 touch $INSTALL_DIR/data/bruteforce.log
-chmod 666 $INSTALL_DIR/data/bruteforce.log
+chmod 666 $INSTALL_DIR/data/bruteforce.log || true
+
+# Verificar arquivos criados
+log "Verificando arquivos criados:"
+ls -la $INSTALL_DIR/data/
 
 # Salvar o token em um arquivo seguro para referência futura
 TOKEN_FILE="$INSTALL_DIR/config/auth_token.txt"
