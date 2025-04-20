@@ -88,80 +88,15 @@ fi
 log "Criando diretórios..."
 mkdir -p $INSTALL_DIR/config
 mkdir -p $INSTALL_DIR/data
-mkdir -p $INSTALL_DIR/scripts
 
-# Copiar script de configuração do detector de força bruta
-log "Copiando script de configuração do detector de força bruta..."
-cat > $INSTALL_DIR/scripts/bruteforce_setup.sh << 'EOF'
-#!/bin/bash
+# Criar arquivos iniciais para o detector de força bruta
+log "Criando arquivos para o detector de força bruta..."
 
-# Script para configurar e testar o detector de força bruta
+# Criar diretório de dados com permissões amplas
+chmod -R 777 $INSTALL_DIR/data
 
-INSTALL_DIR="/opt/guardian"
-DATA_DIR="$INSTALL_DIR/data"
-LOG_FILE="$DATA_DIR/bruteforce.log"
-JSON_FILE="$DATA_DIR/bruteforce.json"
-TEST_FILE="$DATA_DIR/test.json"
-
-# Função para log
-log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
-}
-
-# Criar diretório de dados se não existir
-mkdir -p "$DATA_DIR"
-chmod -R 777 "$DATA_DIR"
-
-# Iniciar arquivo de log
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] Iniciando configuração do detector de força bruta" > "$LOG_FILE"
-chmod 666 "$LOG_FILE"
-
-# Criar arquivo de teste
-echo "teste de json" > "$TEST_FILE"
-chmod 666 "$TEST_FILE"
-
-# Verificar se o comando lastb existe
-log "Verificando se o comando lastb existe..."
-if which lastb > /dev/null 2>&1; then
-    log "Comando lastb encontrado: $(which lastb)"
-else
-    log "AVISO: Comando lastb não encontrado no PATH"
-    # Procurar pelo comando lastb no sistema
-    LASTB_PATH=$(find /usr -name lastb 2>/dev/null || find / -name lastb 2>/dev/null | head -1)
-    if [ -n "$LASTB_PATH" ]; then
-        log "Comando lastb encontrado em: $LASTB_PATH"
-    else
-        log "ERRO: Comando lastb não encontrado no sistema"
-    fi
-fi
-
-# Verificar permissões do sudo
-log "Verificando permissões do sudo..."
-if sudo -n true 2>/dev/null; then
-    log "Sudo sem senha disponível"
-else
-    log "Sudo requer senha - isso pode causar problemas para o detector"
-fi
-
-# Tentar executar o comando lastb
-log "Tentando executar o comando lastb..."
-if sudo lastb > /tmp/lastb_output 2>&1; then
-    log "Comando lastb executado com sucesso"
-    log "Primeiras 10 linhas da saída:"
-    head -10 /tmp/lastb_output | while read line; do
-        log "  $line"
-    done
-else
-    log "ERRO ao executar lastb: $?"
-    log "Saída de erro:"
-    cat /tmp/lastb_output | while read line; do
-        log "  $line"
-    done
-fi
-
-# Criar dados fictícios para o arquivo JSON
-log "Criando dados fictícios para o arquivo JSON..."
-cat > "$JSON_FILE" << EOF
+# Criar arquivo JSON com dados de teste
+cat > $INSTALL_DIR/data/bruteforce.json << EOF
 [
   {
     "ip": "192.168.1.100",
@@ -175,53 +110,22 @@ cat > "$JSON_FILE" << EOF
   }
 ]
 EOF
-chmod 666 "$JSON_FILE"
 
-# Verificar se os arquivos foram criados
+# Criar arquivo de teste
+echo "teste de json" > $INSTALL_DIR/data/test.json
+
+# Criar arquivo de log
+touch $INSTALL_DIR/data/bruteforce.log
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Arquivo de log do detector de força bruta criado" > $INSTALL_DIR/data/bruteforce.log
+
+# Definir permissões dos arquivos
+chmod 666 $INSTALL_DIR/data/bruteforce.json || true
+chmod 666 $INSTALL_DIR/data/test.json || true
+chmod 666 $INSTALL_DIR/data/bruteforce.log || true
+
+# Verificar arquivos criados
 log "Verificando arquivos criados:"
-ls -la "$DATA_DIR" | while read line; do
-    log "  $line"
-done
-
-# Verificar conteúdo do arquivo JSON
-log "Conteúdo do arquivo JSON:"
-cat "$JSON_FILE" | while read line; do
-    log "  $line"
-done
-
-log "Configuração do detector de força bruta concluída"
-EOF
-
-# Verificar se o script existe e torná-lo executável
-if [ -f "$INSTALL_DIR/scripts/bruteforce_setup.sh" ]; then
-    log "Tornando o script de configuração executável..."
-    chmod +x "$INSTALL_DIR/scripts/bruteforce_setup.sh"
-else
-    log "ERRO: Script de configuração não encontrado!"
-fi
-
-# Executar o script de configuração
-if [ -f "$INSTALL_DIR/scripts/bruteforce_setup.sh" ] && [ -x "$INSTALL_DIR/scripts/bruteforce_setup.sh" ]; then
-    log "Executando script de configuração do detector de força bruta..."
-    "$INSTALL_DIR/scripts/bruteforce_setup.sh"
-else
-    log "AVISO: Não foi possível executar o script de configuração"
-    
-    # Criar diretório de dados e arquivos manualmente
-    log "Criando diretório de dados e arquivos manualmente..."
-    mkdir -p "$INSTALL_DIR/data"
-    chmod -R 777 "$INSTALL_DIR/data"
-    
-    # Criar arquivos iniciais
-    echo '[]' > "$INSTALL_DIR/data/bruteforce.json"
-    echo 'teste de json' > "$INSTALL_DIR/data/test.json"
-    touch "$INSTALL_DIR/data/bruteforce.log"
-    
-    # Definir permissões
-    chmod 666 "$INSTALL_DIR/data/bruteforce.json" || true
-    chmod 666 "$INSTALL_DIR/data/test.json" || true
-    chmod 666 "$INSTALL_DIR/data/bruteforce.log" || true
-fi
+ls -la $INSTALL_DIR/data/
 
 # Verificar arquivos criados
 log "Verificando arquivos criados após a configuração:"
@@ -258,7 +162,6 @@ Environment="GUARDIAN_PORT=4554"
 Environment="GUARDIAN_AUTH_TOKEN=$TOKEN"
 Environment="GUARDIAN_INSTALL_DIR=$INSTALL_DIR"
 WorkingDirectory=$INSTALL_DIR
-ExecStartPre=/bin/bash -c "if [ -x $INSTALL_DIR/scripts/bruteforce_setup.sh ]; then $INSTALL_DIR/scripts/bruteforce_setup.sh; fi"
 ExecStart=$INSTALL_DIR/guardian
 Restart=always
 RestartSec=10
