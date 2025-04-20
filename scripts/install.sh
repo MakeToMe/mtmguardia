@@ -192,12 +192,36 @@ done
 log "Configuração do detector de força bruta concluída"
 EOF
 
-# Tornar o script executável
-chmod +x $INSTALL_DIR/scripts/bruteforce_setup.sh
+# Verificar se o script existe e torná-lo executável
+if [ -f "$INSTALL_DIR/scripts/bruteforce_setup.sh" ]; then
+    log "Tornando o script de configuração executável..."
+    chmod +x "$INSTALL_DIR/scripts/bruteforce_setup.sh"
+else
+    log "ERRO: Script de configuração não encontrado!"
+fi
 
 # Executar o script de configuração
-log "Executando script de configuração do detector de força bruta..."
-$INSTALL_DIR/scripts/bruteforce_setup.sh
+if [ -f "$INSTALL_DIR/scripts/bruteforce_setup.sh" ] && [ -x "$INSTALL_DIR/scripts/bruteforce_setup.sh" ]; then
+    log "Executando script de configuração do detector de força bruta..."
+    "$INSTALL_DIR/scripts/bruteforce_setup.sh"
+else
+    log "AVISO: Não foi possível executar o script de configuração"
+    
+    # Criar diretório de dados e arquivos manualmente
+    log "Criando diretório de dados e arquivos manualmente..."
+    mkdir -p "$INSTALL_DIR/data"
+    chmod -R 777 "$INSTALL_DIR/data"
+    
+    # Criar arquivos iniciais
+    echo '[]' > "$INSTALL_DIR/data/bruteforce.json"
+    echo 'teste de json' > "$INSTALL_DIR/data/test.json"
+    touch "$INSTALL_DIR/data/bruteforce.log"
+    
+    # Definir permissões
+    chmod 666 "$INSTALL_DIR/data/bruteforce.json" || true
+    chmod 666 "$INSTALL_DIR/data/test.json" || true
+    chmod 666 "$INSTALL_DIR/data/bruteforce.log" || true
+fi
 
 # Verificar arquivos criados
 log "Verificando arquivos criados após a configuração:"
@@ -234,7 +258,7 @@ Environment="GUARDIAN_PORT=4554"
 Environment="GUARDIAN_AUTH_TOKEN=$TOKEN"
 Environment="GUARDIAN_INSTALL_DIR=$INSTALL_DIR"
 WorkingDirectory=$INSTALL_DIR
-ExecStartPre=$INSTALL_DIR/scripts/bruteforce_setup.sh
+ExecStartPre=/bin/bash -c "if [ -x $INSTALL_DIR/scripts/bruteforce_setup.sh ]; then $INSTALL_DIR/scripts/bruteforce_setup.sh; fi"
 ExecStart=$INSTALL_DIR/guardian
 Restart=always
 RestartSec=10
