@@ -88,6 +88,19 @@ fi
 mkdir -p $INSTALL_DIR/config
 mkdir -p $INSTALL_DIR/data
 
+# Garantir permissões corretas para os diretórios
+chmod -R 777 $INSTALL_DIR/data
+chown -R root:root $INSTALL_DIR
+
+# Criar arquivos iniciais
+echo '[]' > $INSTALL_DIR/data/bruteforce.json
+echo 'teste de json' > $INSTALL_DIR/data/test.json
+chmod 666 $INSTALL_DIR/data/*.json
+
+# Criar arquivo de log vazio com permissões corretas
+touch $INSTALL_DIR/data/bruteforce.log
+chmod 666 $INSTALL_DIR/data/bruteforce.log
+
 # Salvar o token em um arquivo seguro para referência futura
 TOKEN_FILE="$INSTALL_DIR/config/auth_token.txt"
 echo "$TOKEN" > "$TOKEN_FILE"
