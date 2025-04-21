@@ -177,15 +177,20 @@ fi
 case "$FIREWALL" in
     ufw)
         log "Configurando UFW..."
-        log "Ativando UFW (yes | ufw enable)..."
-        yes | ufw enable 2>&1 | tee /tmp/ufw_enable.log
-        log "Ativando UFW (ufw --force enable)..."
-        ufw --force enable 2>&1 | tee -a /tmp/ufw_enable.log
+        log "[DEBUG] Rodando: yes | ufw enable"
+        yes | ufw enable > /tmp/ufw_enable.log 2>&1
+        log "[DEBUG] Saída yes | ufw enable:"
+        cat /tmp/ufw_enable.log
+        log "[DEBUG] Rodando: ufw --force enable"
+        ufw --force enable >> /tmp/ufw_enable.log 2>&1
+        log "[DEBUG] Saída ufw --force enable:"
+        tail -20 /tmp/ufw_enable.log
         if command -v systemctl >/dev/null 2>&1; then
-            log "Habilitando e iniciando serviço UFW via systemctl..."
-            systemctl enable ufw 2>&1 | tee -a /tmp/ufw_enable.log
-            systemctl start ufw 2>&1 | tee -a /tmp/ufw_enable.log
+            log "[DEBUG] Rodando: systemctl enable ufw && systemctl start ufw"
+            systemctl enable ufw >> /tmp/ufw_enable.log 2>&1
+            systemctl start ufw >> /tmp/ufw_enable.log 2>&1
             UFW_SERVICE=$(systemctl is-active ufw)
+            log "[DEBUG] systemctl is-active ufw: $UFW_SERVICE"
         else
             UFW_SERVICE="unknown"
         fi
@@ -208,10 +213,13 @@ case "$FIREWALL" in
         log "Status do UFW após ativação:"
         ufw status verbose
         STATUS=$(ufw status | grep -i 'Status: active')
+        log "[DEBUG] Conteúdo completo do log de ativação do UFW:"
+        cat /tmp/ufw_enable.log
         if [ -z "$STATUS" ] || { command -v systemctl >/dev/null 2>&1 && [ "$UFW_SERVICE" != "active" ]; }; then
             error "UFW não foi ativado corretamente! Veja o log abaixo:\n$(cat /tmp/ufw_enable.log)\nSaída do journalctl:\n$(journalctl -u ufw --no-pager | tail -20)"
         fi
         ;;
+
 
 
     iptables)
