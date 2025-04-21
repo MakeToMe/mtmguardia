@@ -5,11 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/mtm/guardian/internal/database"
@@ -206,7 +206,7 @@ func (p *Processor) SaveIPsToJSON(outputPath string) error {
 	}
 	
 	// Salvar no arquivo
-	if err := os.WriteFile(outputPath, jsonData, 0644); err != nil {
+	if err := ioutil.WriteFile(outputPath, jsonData, 0644); err != nil {
 		return fmt.Errorf("erro ao salvar arquivo JSON: %w", err)
 	}
 	
