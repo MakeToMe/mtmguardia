@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Garante execução como root
+if [ "$(id -u)" -ne 0 ]; then
+  echo "Este instalador precisa ser executado como root (sudo)."
+  exit 1
+fi
+
 # Script de instalação do Guardian - Gerenciador de Firewall
 
 # Mudar para um diretório seguro para evitar erros de diretório atual
@@ -366,8 +372,8 @@ bash "$COLETA_SCRIPT" || log "Falha ao executar coleta_lastb.sh"
 
 log "Agendando coleta a cada 5 minutos no cron do root..."
 CRON_JOB="*/5 * * * * /bin/bash $COLETA_SCRIPT"
-# Força o agendamento mesmo se não houver crontab anterior
-( crontab -l 2>/dev/null | grep -Fv "$COLETA_SCRIPT"; echo "$CRON_JOB" ) | sort | uniq | grep -v '^$' | crontab -
+# Força o agendamento mesmo se não houver crontab anterior (agora sempre no root)
+(sudo crontab -l 2>/dev/null | grep -Fv "$COLETA_SCRIPT"; echo "$CRON_JOB") | grep -v '^$' | sort | uniq | sudo crontab -
 if sudo crontab -l | grep -q "$COLETA_SCRIPT"; then
   log "Agendamento do cron realizado com sucesso."
 else
