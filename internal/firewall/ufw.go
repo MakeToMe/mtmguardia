@@ -54,9 +54,12 @@ func (f *UFWFirewall) Disable() error {
 
 // BanIP bane um endereço IP usando o UFW
 func (f *UFWFirewall) BanIP(ip string) error {
-	cmd := exec.Command("ufw", "deny", "from", ip, "to", "any")
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("erro ao banir IP %s: %w", ip, err)
+	ports := []string{"22", "80", "443", "4554"}
+	for _, port := range ports {
+		cmd := exec.Command("ufw", "deny", "from", ip, "to", "any", "port", port)
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("erro ao banir IP %s na porta %s: %w", ip, port, err)
+		}
 	}
 	return nil
 }

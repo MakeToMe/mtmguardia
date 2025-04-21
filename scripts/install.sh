@@ -93,10 +93,6 @@ cd "$INSTALL_DIR"
 go build -o "$INSTALL_DIR/bin/guardian" cmd/guardian/main.go
 chmod +x "$INSTALL_DIR/bin/guardian"
 
-# Compilar o processador de força bruta
-log "Compilando o processador de força bruta..."
-go build -o "$INSTALL_DIR/bin/bruteforce" cmd/bruteforce/main.go
-chmod +x "$INSTALL_DIR/bin/bruteforce"
 
 # Gerar token aleatório se não for fornecido
 if [ -z "$GUARDIAN_AUTH_TOKEN" ]; then
@@ -112,132 +108,75 @@ log "Criando diretórios..."
 mkdir -p $INSTALL_DIR/config
 mkdir -p $INSTALL_DIR/data
 
-# Configurar o detector de força bruta baseado em script
-log "Configurando detector de força bruta..."
+# Garantir que o firewall está ativo e portas essenciais abertas
+log "Verificando e ativando firewall, se necessário..."
 
-# Criar diretório de dados e scripts com permissões amplas
-mkdir -p $INSTALL_DIR/data
-mkdir -p $INSTALL_DIR/scripts
-chmod -R 777 $INSTALL_DIR/data
-
-# Copiar script de monitoramento de força bruta
-log "Copiando script de monitoramento de força bruta..."
-cat > $INSTALL_DIR/scripts/bruteforce_monitor.sh << 'EOF'
-#!/bin/bash
-
-# Script para monitorar tentativas de login malsucedidas usando lastb
-# Este script é executado a cada 5 minutos via crontab
-
-# Definir diretório de dados e arquivos
-DATA_DIR="/opt/guardian/data"
-JSON_FILE="$DATA_DIR/bruteforce.json"
-LOG_FILE="$DATA_DIR/bruteforce.log"
-
-# Função para log
-log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
-}
-
-# Garantir que o diretório existe
-mkdir -p "$DATA_DIR"
-chmod -R 777 "$DATA_DIR" 2>/dev/null || true
-
-# Iniciar log se não existir
-if [ ! -f "$LOG_FILE" ]; then
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Arquivo de log do detector de força bruta criado" > "$LOG_FILE"
-    chmod 666 "$LOG_FILE" 2>/dev/null || true
+# Detectar firewall (ufw, iptables, firewalld)
+FIREWALL=""
+if command -v ufw >/dev/null 2>&1; then
+    FIREWALL="ufw"
+elif command -v iptables >/dev/null 2>&1; then
+    FIREWALL="iptables"
+elif command -v firewall-cmd >/dev/null 2>&1; then
+    FIREWALL="firewalld"
+else
+    error "Nenhum firewall suportado encontrado (ufw, iptables, firewalld)"
 fi
 
-log "Executando detector de força bruta..."
+case "$FIREWALL" in
+    ufw)
+        log "Configurando UFW..."
+        ufw --force enable
+        ufw allow 22/tcp
+        ufw allow 4554/tcp
+        ufw allow 80/tcp
+        ufw allow 443/tcp
+        ufw allow 22/tcp comment 'SSH'
+        ufw allow 4554/tcp comment 'API Guardian'
+        ufw allow 80/tcp comment 'HTTP'
+        ufw allow 443/tcp comment 'HTTPS'
+        ufw allow 22/tcp from any to any proto tcp
+        ufw allow 4554/tcp from any to any proto tcp
+        ufw allow 80/tcp from any to any proto tcp
+        ufw allow 443/tcp from any to any proto tcp
+        ufw allow 22/tcp from any to any proto tcp comment 'SSH IPv6'
+        ufw allow 4554/tcp from any to any proto tcp comment 'API IPv6'
+        ufw allow 80/tcp from any to any proto tcp comment 'HTTP IPv6'
+        ufw allow 443/tcp from any to any proto tcp comment 'HTTPS IPv6'
+        ;;
+    iptables)
+        log "Configurando iptables..."
+        iptables -F
+        iptables -X
+        iptables -P INPUT DROP
+        iptables -P FORWARD DROP
+        iptables -P OUTPUT ACCEPT
+        iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+        iptables -A INPUT -i lo -j ACCEPT
+        iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+        iptables -A INPUT -p tcp --dport 4554 -j ACCEPT
+        iptables -A INPUT -p tcp --dport 80 -j ACCEPT
+        iptables -A INPUT -p tcp --dport 443 -j ACCEPT
+        ip6tables -A INPUT -p tcp --dport 22 -j ACCEPT
+        ip6tables -A INPUT -p tcp --dport 4554 -j ACCEPT
+        ip6tables -A INPUT -p tcp --dport 80 -j ACCEPT
+        ip6tables -A INPUT -p tcp --dport 443 -j ACCEPT
+        iptables-save > /etc/iptables/rules.v4 || (mkdir -p /etc/iptables && iptables-save > /etc/iptables/rules.v4)
+        ip6tables-save > /etc/iptables/rules.v6 || (mkdir -p /etc/iptables && ip6tables-save > /etc/iptables/rules.v6)
+        ;;
+    firewalld)
+        log "Configurando firewalld..."
+        systemctl start firewalld
+        systemctl enable firewalld
+        firewall-cmd --permanent --add-service=ssh
+        firewall-cmd --permanent --add-port=4554/tcp
+        firewall-cmd --permanent --add-port=80/tcp
+        firewall-cmd --permanent --add-port=443/tcp
+        firewall-cmd --reload
+        ;;
+esac
 
-# Executar lastb e processar saída
-log "Executando comando lastb..."
-LASTB_OUTPUT=$(sudo lastb 2>&1)
-
-if [ $? -ne 0 ]; then
-    log "ERRO ao executar lastb: $LASTB_OUTPUT"
-    exit 1
-fi
-
-# Processar a saída para obter IPs e contagens
-log "Processando saída do lastb..."
-PROCESSED_OUTPUT=$(echo "$LASTB_OUTPUT" | awk '{ print $3 }' | sort | uniq -c | sort -nr)
-
-if [ -z "$PROCESSED_OUTPUT" ]; then
-    log "Nenhuma tentativa de login malsucedida encontrada."
-    echo "[]" > "$JSON_FILE"
-    chmod 666 "$JSON_FILE" 2>/dev/null || true
-    exit 0
-fi
-
-# Converter para JSON
-log "Convertendo resultados para JSON..."
-JSON="["
-FIRST=true
-
-echo "$PROCESSED_OUTPUT" | while read line; do
-    # Extrair contagem e IP
-    COUNT=$(echo "$line" | awk '{print $1}')
-    IP=$(echo "$line" | awk '{print $2}')
-    
-    # Verificar se a contagem é um número e o IP não está vazio
-    if [[ "$COUNT" =~ ^[0-9]+$ ]] && [ ! -z "$IP" ]; then
-        # Verificar se a contagem é maior ou igual a 3
-        if [ "$COUNT" -ge 3 ]; then
-            if [ "$FIRST" = true ]; then
-                FIRST=false
-            else
-                JSON="$JSON,"
-            fi
-            
-            # Adicionar ao JSON
-            TIMESTAMP=$(date -Iseconds)
-            JSON="$JSON
-  {
-    \"ip\": \"$IP\",
-    \"count\": $COUNT,
-    \"timestamp\": \"$TIMESTAMP\"
-  }"
-            
-            log "Detectado IP com múltiplas tentativas: $IP (contagem: $COUNT)"
-        fi
-    fi
-done
-
-JSON="$JSON
-]"
-
-# Salvar JSON no arquivo
-log "Salvando resultados em $JSON_FILE..."
-echo "$JSON" > "$JSON_FILE"
-chmod 666 "$JSON_FILE" 2>/dev/null || true
-
-log "Detector de força bruta concluído com sucesso."
-EOF
-
-# Tornar o script executável
-log "Tornando o script executável..."
-chmod +x $INSTALL_DIR/scripts/bruteforce_monitor.sh
-
-# Criar arquivo de teste
-echo "teste de json" > $INSTALL_DIR/data/test.json
-chmod 666 $INSTALL_DIR/data/test.json || true
-
-# Configurar crontab para executar o script a cada 5 minutos
-log "Configurando crontab para executar o script a cada 5 minutos..."
-(crontab -l 2>/dev/null | grep -v "bruteforce_monitor.sh"; echo "*/5 * * * * $INSTALL_DIR/scripts/bruteforce_monitor.sh") | crontab -
-
-# Executar o script imediatamente
-log "Executando o script pela primeira vez..."
-$INSTALL_DIR/scripts/bruteforce_monitor.sh
-
-# Verificar arquivos criados
-log "Verificando arquivos criados:"
-ls -la $INSTALL_DIR/data/
-
-# Verificar arquivos criados
-log "Verificando arquivos criados após a configuração:"
-ls -la $INSTALL_DIR/data/
+log "Firewall configurado e portas essenciais abertas."
 
 # Salvar o token em um arquivo seguro para referência futura
 TOKEN_FILE="$INSTALL_DIR/config/auth_token.txt"

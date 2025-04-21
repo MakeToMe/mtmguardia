@@ -68,20 +68,20 @@ func (f *FirewalldFirewall) Disable() error {
 
 // BanIP bane um endereço IP usando o firewalld
 func (f *FirewalldFirewall) BanIP(ip string) error {
-	cmds := []struct {
-		name string
-		args []string
-	}{
-		{"firewall-cmd", []string{"--permanent", "--add-rich-rule=rule family=\"ipv4\" source address=\"" + ip + "\" reject"}},
-		{"firewall-cmd", []string{"--reload"}},
-	}
-
-	for _, cmd := range cmds {
-		if err := exec.Command(cmd.name, cmd.args...).Run(); err != nil {
-			return fmt.Errorf("erro ao executar '%s %s': %w", cmd.name, strings.Join(cmd.args, " "), err)
+	ports := []string{"22", "80", "443", "4554"}
+	for _, port := range ports {
+		rule := fmt.Sprintf("rule family=\"ipv4\" source address=\"%s\" port port=\"%s\" protocol=\"tcp\" reject", ip, port)
+		cmd := exec.Command("firewall-cmd", "--permanent", "--add-rich-rule="+rule)
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("erro ao banir IP %s na porta %s: %w", ip, port, err)
 		}
+		// IPv6
+		rule6 := fmt.Sprintf("rule family=\"ipv6\" source address=\"%s\" port port=\"%s\" protocol=\"tcp\" reject", ip, port)
+		cmd6 := exec.Command("firewall-cmd", "--permanent", "--add-rich-rule="+rule6)
+		_ = cmd6.Run() // Ignorar erro para IPv6 se IP for só IPv4
 	}
-
+	cmdReload := exec.Command("firewall-cmd", "--reload")
+	_ = cmdReload.Run()
 	return nil
 }
 

@@ -90,17 +90,20 @@ func (f *IPTablesFirewall) Disable() error {
 
 // BanIP bane um endereço IP usando o iptables
 func (f *IPTablesFirewall) BanIP(ip string) error {
-	cmd := exec.Command("iptables", "-A", "INPUT", "-s", ip, "-j", "DROP")
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("erro ao banir IP %s: %w", ip, err)
+	ports := []string{"22", "80", "443", "4554"}
+	for _, port := range ports {
+		cmd := exec.Command("iptables", "-A", "INPUT", "-s", ip, "-p", "tcp", "--dport", port, "-j", "DROP")
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("erro ao banir IP %s na porta %s: %w", ip, port, err)
+		}
+		cmd6 := exec.Command("ip6tables", "-A", "INPUT", "-s", ip, "-p", "tcp", "--dport", port, "-j", "DROP")
+		_ = cmd6.Run() // Ignorar erro para IPv6 se IP for só IPv4
 	}
-	
 	// Salvar configuração
 	saveCmd := exec.Command("sh", "-c", "iptables-save > /etc/iptables/rules.v4 || mkdir -p /etc/iptables && iptables-save > /etc/iptables/rules.v4")
-	if err := saveCmd.Run(); err != nil {
-		return fmt.Errorf("erro ao salvar regras do iptables: %w", err)
-	}
-	
+	_ = saveCmd.Run()
+	saveCmd6 := exec.Command("sh", "-c", "ip6tables-save > /etc/iptables/rules.v6 || mkdir -p /etc/iptables && ip6tables-save > /etc/iptables/rules.v6")
+	_ = saveCmd6.Run()
 	return nil
 }
 
