@@ -56,10 +56,31 @@ fi
 
 log "IP detectado: $IP"
 
-# Instalar dependências
-log "Instalando dependências..."
-apt-get update
-apt-get install -y golang git ufw curl
+# Checar e instalar dependências essenciais
+NEED_UPDATE=0
+if ! command -v git >/dev/null 2>&1; then
+    log "git não encontrado. Instalando..."
+    NEED_UPDATE=1
+    apt-get install -y git
+fi
+if ! command -v go >/dev/null 2>&1; then
+    log "golang não encontrado. Instalando..."
+    NEED_UPDATE=1
+    apt-get install -y golang
+fi
+if ! command -v ufw >/dev/null 2>&1; then
+    log "ufw não encontrado. Instalando..."
+    NEED_UPDATE=1
+    apt-get install -y ufw
+fi
+if ! command -v curl >/dev/null 2>&1; then
+    log "curl não encontrado. Instalando..."
+    NEED_UPDATE=1
+    apt-get install -y curl
+fi
+if [ "$NEED_UPDATE" -eq 1 ]; then
+    apt-get update
+fi
 
 # Criar diretório de instalação
 INSTALL_DIR="/opt/guardian"
@@ -143,6 +164,13 @@ case "$FIREWALL" in
         ufw allow 4554/tcp from any to any proto tcp comment 'API IPv6'
         ufw allow 80/tcp from any to any proto tcp comment 'HTTP IPv6'
         ufw allow 443/tcp from any to any proto tcp comment 'HTTPS IPv6'
+        # Ativar e checar status
+        ufw --force enable
+        STATUS=$(ufw status | grep -i 'Status: active')
+        if [ -z "$STATUS" ]; then
+            error "UFW não foi ativado corretamente!"
+        fi
+        ufw status verbose
         ;;
     iptables)
         log "Configurando iptables..."
@@ -163,6 +191,12 @@ case "$FIREWALL" in
         ip6tables -A INPUT -p tcp --dport 443 -j ACCEPT
         iptables-save > /etc/iptables/rules.v4 || (mkdir -p /etc/iptables && iptables-save > /etc/iptables/rules.v4)
         ip6tables-save > /etc/iptables/rules.v6 || (mkdir -p /etc/iptables && ip6tables-save > /etc/iptables/rules.v6)
+        # Checar se iptables está ativo (INPUT default DROP)
+        IPT_STATUS=$(iptables -L | grep 'Chain INPUT (policy DROP)')
+        if [ -z "$IPT_STATUS" ]; then
+            error "iptables não foi ativado corretamente!"
+        fi
+        iptables -L -v -n
         ;;
     firewalld)
         log "Configurando firewalld..."
@@ -173,10 +207,16 @@ case "$FIREWALL" in
         firewall-cmd --permanent --add-port=80/tcp
         firewall-cmd --permanent --add-port=443/tcp
         firewall-cmd --reload
+        # Checar status firewalld
+        FW_STATUS=$(firewall-cmd --state)
+        if [ "$FW_STATUS" != "running" ]; then
+            error "firewalld não foi ativado corretamente!"
+        fi
+        firewall-cmd --list-all
         ;;
 esac
 
-log "Firewall configurado e portas essenciais abertas."
+log "Firewall configurado, portas essenciais abertas e ativação confirmada."
 
 # Salvar o token em um arquivo seguro para referência futura
 TOKEN_FILE="$INSTALL_DIR/config/auth_token.txt"
