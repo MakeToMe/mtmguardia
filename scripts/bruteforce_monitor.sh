@@ -47,10 +47,17 @@ fi
 
 # Converter para JSON
 log "Convertendo resultados para JSON..."
-JSON="["
+
+# Criar um arquivo temporário para construir o JSON
+TMP_JSON_FILE="/tmp/bruteforce_tmp.json"
+echo "[" > "$TMP_JSON_FILE"
+
+# Variável para controlar se é o primeiro item
 FIRST=true
 
-echo "$PROCESSED_OUTPUT" | while read line; do
+# Processar cada linha da saída
+log "Processando $(echo "$PROCESSED_OUTPUT" | wc -l) linhas de saída..."
+while IFS= read -r line; do
     # Extrair contagem e IP
     COUNT=$(echo "$line" | awk '{print $1}')
     IP=$(echo "$line" | awk '{print $2}')
@@ -62,29 +69,41 @@ echo "$PROCESSED_OUTPUT" | while read line; do
             if [ "$FIRST" = true ]; then
                 FIRST=false
             else
-                JSON="$JSON,"
+                echo "," >> "$TMP_JSON_FILE"
             fi
             
             # Adicionar ao JSON
             TIMESTAMP=$(date -Iseconds)
-            JSON="$JSON
-  {
-    \"ip\": \"$IP\",
-    \"count\": $COUNT,
-    \"timestamp\": \"$TIMESTAMP\"
-  }"
+            echo "  {" >> "$TMP_JSON_FILE"
+            echo "    \"ip\": \"$IP\"," >> "$TMP_JSON_FILE"
+            echo "    \"count\": $COUNT," >> "$TMP_JSON_FILE"
+            echo "    \"timestamp\": \"$TIMESTAMP\"" >> "$TMP_JSON_FILE"
+            echo "  }" >> "$TMP_JSON_FILE"
             
             log "Detectado IP com múltiplas tentativas: $IP (contagem: $COUNT)"
         fi
     fi
-done
+done <<< "$PROCESSED_OUTPUT"
 
-JSON="$JSON
-]"
+# Finalizar o JSON
+echo "]" >> "$TMP_JSON_FILE"
 
-# Salvar JSON no arquivo
-log "Salvando resultados em $JSON_FILE..."
-echo "$JSON" > "$JSON_FILE"
-chmod 666 "$JSON_FILE" 2>/dev/null || true
+# Verificar se o JSON foi gerado corretamente
+if [ -f "$TMP_JSON_FILE" ]; then
+    log "JSON temporário gerado com sucesso. Tamanho: $(wc -c < "$TMP_JSON_FILE") bytes"
+    
+    # Copiar para o arquivo final
+    log "Salvando resultados em $JSON_FILE..."
+    cp "$TMP_JSON_FILE" "$JSON_FILE"
+    chmod 666 "$JSON_FILE" 2>/dev/null || true
+    
+    # Mostrar o conteúdo do JSON (primeiras 5 linhas)
+    log "Primeiras linhas do JSON gerado:"
+    head -5 "$JSON_FILE" | while IFS= read -r line; do
+        log "  $line"
+    done
+else
+    log "ERRO: Falha ao gerar arquivo JSON temporário"
+fi
 
 log "Detector de força bruta concluído com sucesso."
