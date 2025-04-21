@@ -142,7 +142,7 @@ mkdir -p "$INSTALL_DIR/config"
 # Compilar os binários
 log "Compilando os binários..."
 cd "$INSTALL_DIR"
-go build -o "$INSTALL_DIR/bin/guardian" cmd/guardian/main.go
+go build -o "$INSTALL_DIR/bin/guardian" ./cmd/guardian
 chmod +x "$INSTALL_DIR/bin/guardian"
 
 
