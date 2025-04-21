@@ -236,24 +236,26 @@ chmod 600 "$TOKEN_FILE" # Apenas root pode ler
 # Solicitar informações do banco de dados
 log "Configurando acesso ao banco de dados..."
 
-# Verificar se estamos em um terminal interativo
-if [ -t 0 ]; then
-    # Terminal interativo - solicitar string de conexão
-    echo "Informe a string de conexão com o PostgreSQL:"
-    read -p "> " DB_CONN_STRING
+# Solicitar string de conexão com o PostgreSQL
+log "Configurando acesso ao banco de dados..."
+
+# Usar parâmetro de linha de comando se fornecido
+if [ -n "$1" ]; then
+    DB_CONN_STRING="$1"
+    log "Usando string de conexão fornecida via parâmetro."
 else
-    # Não estamos em um terminal interativo (ex: curl | bash)
-    log "Execução não interativa detectada. Para configurar o banco de dados, edite o arquivo:"
-    log "$INSTALL_DIR/config/config.env"
-    log "E adicione a variável:"
-    log "GUARDIAN_DB_CONN_STRING=sua_string_de_conexao"
+    # Solicitar string de conexão interativamente
+    log "Para configurar o acesso ao banco de dados, execute:"
+    log "sudo $INSTALL_DIR/bin/guardian setup --db-conn-string='sua_string_de_conexao'"
+    log "Ou edite o arquivo: $INSTALL_DIR/config/config.env"
+    log "E adicione a variável: GUARDIAN_DB_CONN_STRING=sua_string_de_conexao"
     
     # Definir valor vazio para não interromper o script
     DB_CONN_STRING=""
 fi
 
 # Explicar que os IDs serão obtidos automaticamente
-log "Os IDs de servidor e titular serão obtidos automaticamente do banco de dados."
+log "Os IDs de servidor e titular serão obtidos automaticamente do banco de dados quando a string de conexão for configurada."
 
 # Criar arquivo de configuração
 log "Criando arquivo de configuração..."

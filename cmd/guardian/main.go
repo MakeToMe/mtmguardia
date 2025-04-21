@@ -14,6 +14,12 @@ import (
 )
 
 func main() {
+	// Verificar se é um comando de setup
+	if len(os.Args) > 1 && os.Args[1] == "setup" {
+		setupCommand()
+		return
+	}
+
 	log.Println("Iniciando Guardian - Gerenciador de Firewall")
 
 	// Carregar configurações
