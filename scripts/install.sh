@@ -201,14 +201,15 @@ case "$FIREWALL" in
         ufw allow 4554/tcp comment 'API Guardian'
         ufw allow 80/tcp comment 'HTTP'
         ufw allow 443/tcp comment 'HTTPS'
-        ufw allow 22/tcp from any to any proto tcp
-        ufw allow 4554/tcp from any to any proto tcp
-        ufw allow 80/tcp from any to any proto tcp
-        ufw allow 443/tcp from any to any proto tcp
-        ufw allow 22/tcp from any to any proto tcp comment 'SSH IPv6'
-        ufw allow 4554/tcp from any to any proto tcp comment 'API IPv6'
-        ufw allow 80/tcp from any to any proto tcp comment 'HTTP IPv6'
-        ufw allow 443/tcp from any to any proto tcp comment 'HTTPS IPv6'
+        # As regras abaixo eram inválidas e removidas:
+        # ufw allow 22/tcp from any to any proto tcp
+        # ufw allow 4554/tcp from any to any proto tcp
+        # ufw allow 80/tcp from any to any proto tcp
+        # ufw allow 443/tcp from any to any proto tcp
+        # ufw allow 22/tcp from any to any proto tcp comment 'SSH IPv6'
+        # ufw allow 4554/tcp from any to any proto tcp comment 'API IPv6'
+        # ufw allow 80/tcp from any to any proto tcp comment 'HTTP IPv6'
+        # ufw allow 443/tcp from any to any proto tcp comment 'HTTPS IPv6'
         echo "[DEBUG] Status do UFW após ativação:"
         ufw status verbose
         STATUS=$(ufw status | grep -i 'Status: active')
