@@ -4,9 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"os"
+	"regexp"
+	"strconv"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/lib/pq"
 	_ "github.com/lib/pq"
 	"github.com/mtm/guardian/internal/config"
@@ -81,11 +86,61 @@ func (c *PostgresClient) GetServerInfo(ctx context.Context) (string, string, err
 	err := c.db.QueryRowContext(ctx, query, c.serverIP).Scan(&serverID, &titularID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return "", "", fmt.Errorf("servidor com IP %s não encontrado", c.serverIP)
+			// Se o servidor não for encontrado, tentar criar um novo registro
+			return c.createServerRecord(ctx)
 		}
 		return "", "", fmt.Errorf("erro ao buscar informações do servidor: %w", err)
 	}
 
+	return serverID, titularID, nil
+}
+
+// createServerRecord cria um novo registro de servidor no banco de dados
+func (c *PostgresClient) createServerRecord(ctx context.Context) (string, string, error) {
+	// Verificar se temos informações sobre o sistema
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = "servidor-" + c.serverIP
+	}
+
+	// Buscar o primeiro titular disponível (administrador)
+	titularQuery := fmt.Sprintf(`
+		SELECT id FROM %s.users WHERE role = 'admin' LIMIT 1
+	`, c.schema)
+
+	var titularID string
+	err = c.db.QueryRowContext(ctx, titularQuery).Scan(&titularID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", "", fmt.Errorf("nenhum usuário administrador encontrado no banco de dados")
+		}
+		return "", "", fmt.Errorf("erro ao buscar titular: %w", err)
+	}
+
+	// Gerar um UUID para o servidor
+	serverID := uuid.New().String()
+
+	// Inserir o novo servidor
+	insertQuery := fmt.Sprintf(`
+		INSERT INTO %s.servidores (uid, titular, ip, nome, sistema, created_at)
+		VALUES ($1, $2, $3, $4, $5, NOW())
+	`, c.schema)
+
+	_, err = c.db.ExecContext(
+		ctx,
+		insertQuery,
+		serverID,
+		titularID,
+		c.serverIP,
+		hostname,
+		"Linux",
+	)
+
+	if err != nil {
+		return "", "", fmt.Errorf("erro ao criar registro de servidor: %w", err)
+	}
+
+	log.Printf("Novo servidor registrado com sucesso. ID: %s, Titular: %s", serverID, titularID)
 	return serverID, titularID, nil
 }
 
@@ -94,11 +149,7 @@ func (c *PostgresClient) InsertBannedIP(ctx context.Context, ip string) error {
 	// Buscar servidor_id e titular
 	serverID, titularID, err := c.GetServerInfo(ctx)
 	if err != nil {
-		log.Printf("Aviso: %v. Usando valores de configuração.", err)
-		
-		// Usar valores da configuração se não encontrar no banco
-		serverID = c.cfg.ServerID
-		titularID = c.cfg.TitularID
+		return fmt.Errorf("erro ao obter informações do servidor: %w", err)
 	}
 
 	// Verificar se os valores necessários estão presentes
@@ -169,11 +220,7 @@ func (c *PostgresClient) InsertBannedIPs(ctx context.Context, ips []BannedIP) er
 	// Buscar servidor_id e titular
 	serverID, titularID, err := c.GetServerInfo(ctx)
 	if err != nil {
-		log.Printf("Aviso: %v. Usando valores de configuração.", err)
-		
-		// Usar valores da configuração se não encontrar no banco
-		serverID = c.cfg.ServerID
-		titularID = c.cfg.TitularID
+		return fmt.Errorf("erro ao obter informações do servidor: %w", err)
 	}
 
 	// Verificar se os valores necessários estão presentes

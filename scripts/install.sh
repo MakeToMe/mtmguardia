@@ -238,29 +238,22 @@ log "Configurando acesso ao banco de dados..."
 
 # Verificar se estamos em um terminal interativo
 if [ -t 0 ]; then
-    # Terminal interativo - solicitar informações
-    echo "Informe a string de conexão com o PostgreSQL (deixe em branco para pular):"
+    # Terminal interativo - solicitar string de conexão
+    echo "Informe a string de conexão com o PostgreSQL:"
     read -p "> " DB_CONN_STRING
-
-    echo "Informe o ID do servidor (UUID, deixe em branco para pular):"
-    read -p "> " SERVER_ID
-
-    echo "Informe o ID do titular (UUID, deixe em branco para pular):"
-    read -p "> " TITULAR_ID
 else
     # Não estamos em um terminal interativo (ex: curl | bash)
     log "Execução não interativa detectada. Para configurar o banco de dados, edite o arquivo:"
     log "$INSTALL_DIR/config/config.env"
-    log "E adicione as seguintes variáveis:"
+    log "E adicione a variável:"
     log "GUARDIAN_DB_CONN_STRING=sua_string_de_conexao"
-    log "GUARDIAN_SERVER_ID=seu_servidor_id"
-    log "GUARDIAN_TITULAR_ID=seu_titular_id"
     
-    # Definir valores vazios para não interromper o script
+    # Definir valor vazio para não interromper o script
     DB_CONN_STRING=""
-    SERVER_ID=""
-    TITULAR_ID=""
 fi
+
+# Explicar que os IDs serão obtidos automaticamente
+log "Os IDs de servidor e titular serão obtidos automaticamente do banco de dados."
 
 # Criar arquivo de configuração
 log "Criando arquivo de configuração..."
@@ -271,8 +264,6 @@ GUARDIAN_AUTH_TOKEN=$TOKEN
 GUARDIAN_INSTALL_DIR=$INSTALL_DIR
 GUARDIAN_DB_CONN_STRING=$DB_CONN_STRING
 GUARDIAN_DB_SCHEMA=mtm
-GUARDIAN_SERVER_ID=$SERVER_ID
-GUARDIAN_TITULAR_ID=$TITULAR_ID
 EOF
 
 # Criar serviço systemd
