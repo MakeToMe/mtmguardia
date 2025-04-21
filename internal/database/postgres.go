@@ -4,11 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
-	"regexp"
-	"strconv"
 	"time"
 
 	"github.com/google/uuid"
