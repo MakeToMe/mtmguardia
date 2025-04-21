@@ -61,25 +61,32 @@ NEED_UPDATE=0
 if ! command -v git >/dev/null 2>&1; then
     log "git não encontrado. Instalando..."
     NEED_UPDATE=1
-    apt-get install -y git
 fi
 if ! command -v go >/dev/null 2>&1; then
     log "golang não encontrado. Instalando..."
     NEED_UPDATE=1
-    apt-get install -y golang
 fi
 if ! command -v ufw >/dev/null 2>&1; then
     log "ufw não encontrado. Instalando..."
     NEED_UPDATE=1
-    apt-get install -y ufw
 fi
 if ! command -v curl >/dev/null 2>&1; then
     log "curl não encontrado. Instalando..."
     NEED_UPDATE=1
-    apt-get install -y curl
 fi
 if [ "$NEED_UPDATE" -eq 1 ]; then
     apt-get update
+    apt-get install -y git golang ufw curl
+fi
+
+# Checar versão do Go >= 1.21
+if command -v go >/dev/null 2>&1; then
+    GOVERSION=$(go version | awk '{print $3}' | sed 's/go//')
+    GOVMAJ=$(echo $GOVERSION | cut -d. -f1)
+    GOVMIN=$(echo $GOVERSION | cut -d. -f2)
+    if [ "$GOVMAJ" -lt 1 ] || { [ "$GOVMAJ" -eq 1 ] && [ "$GOVMIN" -lt 21 ]; }; then
+        error "Go 1.21 ou superior é necessário. Versão encontrada: $GOVERSION"
+    fi
 fi
 
 # Criar diretório de instalação
@@ -147,7 +154,11 @@ fi
 case "$FIREWALL" in
     ufw)
         log "Configurando UFW..."
+        # Ativar UFW com máxima compatibilidade
+        yes | ufw enable
         ufw --force enable
+        systemctl enable ufw
+        systemctl start ufw
         ufw allow 22/tcp
         ufw allow 4554/tcp
         ufw allow 80/tcp
@@ -164,14 +175,15 @@ case "$FIREWALL" in
         ufw allow 4554/tcp from any to any proto tcp comment 'API IPv6'
         ufw allow 80/tcp from any to any proto tcp comment 'HTTP IPv6'
         ufw allow 443/tcp from any to any proto tcp comment 'HTTPS IPv6'
-        # Ativar e checar status
-        ufw --force enable
+        # Checar status
         STATUS=$(ufw status | grep -i 'Status: active')
-        if [ -z "$STATUS" ]; then
+        UFW_SERVICE=$(systemctl is-active ufw)
+        if [ -z "$STATUS" ] || [ "$UFW_SERVICE" != "active" ]; then
             error "UFW não foi ativado corretamente!"
         fi
         ufw status verbose
         ;;
+
     iptables)
         log "Configurando iptables..."
         iptables -F
