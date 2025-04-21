@@ -162,6 +162,7 @@ mkdir -p $INSTALL_DIR/data
 
 # Garantir que o firewall está ativo e portas essenciais abertas
 log "Verificando e ativando firewall, se necessário..."
+echo "[DEBUG] === INÍCIO BLOCO FIREWALL ==="
 
 # Detectar firewall (ufw, iptables, firewalld)
 FIREWALL=""
@@ -175,19 +176,20 @@ else
     error "Nenhum firewall suportado encontrado (ufw, iptables, firewalld)"
 fi
 
+set -x
 case "$FIREWALL" in
     ufw)
         log "Configurando UFW..."
-        log "[DEBUG] Rodando: ufw --force enable"
+        echo "[DEBUG] Rodando: ufw --force enable"
         ufw --force enable > /tmp/ufw_enable.log 2>&1
-        log "[DEBUG] Saída ufw --force enable:"
+        echo "[DEBUG] Saída ufw --force enable:"
         cat /tmp/ufw_enable.log
         if command -v systemctl >/dev/null 2>&1; then
-            log "[DEBUG] Rodando: systemctl enable ufw && systemctl start ufw"
+            echo "[DEBUG] Rodando: systemctl enable ufw && systemctl start ufw"
             systemctl enable ufw >> /tmp/ufw_enable.log 2>&1
             systemctl start ufw >> /tmp/ufw_enable.log 2>&1
             UFW_SERVICE=$(systemctl is-active ufw)
-            log "[DEBUG] systemctl is-active ufw: $UFW_SERVICE"
+            echo "[DEBUG] systemctl is-active ufw: $UFW_SERVICE"
         else
             UFW_SERVICE="unknown"
         fi
@@ -207,10 +209,10 @@ case "$FIREWALL" in
         ufw allow 4554/tcp from any to any proto tcp comment 'API IPv6'
         ufw allow 80/tcp from any to any proto tcp comment 'HTTP IPv6'
         ufw allow 443/tcp from any to any proto tcp comment 'HTTPS IPv6'
-        log "Status do UFW após ativação:"
+        echo "[DEBUG] Status do UFW após ativação:"
         ufw status verbose
         STATUS=$(ufw status | grep -i 'Status: active')
-        log "[DEBUG] Conteúdo completo do log de ativação do UFW:"
+        echo "[DEBUG] Conteúdo completo do log de ativação do UFW:"
         cat /tmp/ufw_enable.log
         if [ -z "$STATUS" ] || { command -v systemctl >/dev/null 2>&1 && [ "$UFW_SERVICE" != "active" ]; }; then
             error "UFW não foi ativado corretamente! Veja o log abaixo:\n$(cat /tmp/ufw_enable.log)\nSaída do journalctl:\n$(journalctl -u ufw --no-pager | tail -20)"
