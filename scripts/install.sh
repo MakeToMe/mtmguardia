@@ -221,14 +221,28 @@ TOKEN_FILE="$INSTALL_DIR/config/auth_token.txt"
 echo "$TOKEN" > "$TOKEN_FILE"
 chmod 600 "$TOKEN_FILE" # Apenas root pode ler
 
+# Solicitar informações do banco de dados
+log "Configurando acesso ao banco de dados..."
+echo "Informe a string de conexão com o PostgreSQL (deixe em branco para pular):"
+read -p "> " DB_CONN_STRING
+
+echo "Informe o ID do servidor (UUID, deixe em branco para pular):"
+read -p "> " SERVER_ID
+
+echo "Informe o ID do titular (UUID, deixe em branco para pular):"
+read -p "> " TITULAR_ID
+
 # Criar arquivo de configuração
 log "Criando arquivo de configuração..."
-cat > $INSTALL_DIR/config/config.env << EOF
+cat > "$INSTALL_DIR/config/config.env" << EOF
 GUARDIAN_IP=$IP
 GUARDIAN_PORT=4554
 GUARDIAN_AUTH_TOKEN=$TOKEN
-GUARDIAN_FIREWALL_TYPE=auto
 GUARDIAN_INSTALL_DIR=$INSTALL_DIR
+GUARDIAN_DB_CONN_STRING=$DB_CONN_STRING
+GUARDIAN_DB_SCHEMA=mtm
+GUARDIAN_SERVER_ID=$SERVER_ID
+GUARDIAN_TITULAR_ID=$TITULAR_ID
 EOF
 
 # Criar serviço systemd

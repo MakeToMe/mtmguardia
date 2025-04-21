@@ -16,6 +16,11 @@ type Config struct {
 	AuthToken    string
 	FirewallType string
 	InstallDir   string
+	// Configurações do PostgreSQL
+	DBConnString string
+	DBSchema     string
+	ServerID     string
+	TitularID    string
 }
 
 // Load carrega as configurações do arquivo .env ou variáveis de ambiente
@@ -66,6 +71,25 @@ func Load() (*Config, error) {
 	// Diretório de instalação
 	if installDir := os.Getenv("GUARDIAN_INSTALL_DIR"); installDir != "" {
 		cfg.InstallDir = installDir
+	}
+
+	// Configurações do PostgreSQL
+	if dbConnString := os.Getenv("GUARDIAN_DB_CONN_STRING"); dbConnString != "" {
+		cfg.DBConnString = dbConnString
+	}
+
+	if dbSchema := os.Getenv("GUARDIAN_DB_SCHEMA"); dbSchema != "" {
+		cfg.DBSchema = dbSchema
+	} else {
+		cfg.DBSchema = "mtm" // Schema padrão
+	}
+
+	if serverID := os.Getenv("GUARDIAN_SERVER_ID"); serverID != "" {
+		cfg.ServerID = serverID
+	}
+
+	if titularID := os.Getenv("GUARDIAN_TITULAR_ID"); titularID != "" {
+		cfg.TitularID = titularID
 	}
 
 	return cfg, nil

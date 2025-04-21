@@ -107,3 +107,14 @@ else
 fi
 
 log "Detector de força bruta concluído com sucesso."
+
+# Chamar o processador Go para enviar os IPs para o banco de dados
+if [ -f "$INSTALL_DIR/bin/bruteforce" ]; then
+    log "Chamando processador Go para enviar IPs para o banco de dados..."
+    "$INSTALL_DIR/bin/bruteforce" --log "$LOG_FILE" --min 3
+    log "Processador Go concluído."
+else
+    log "Processador Go não encontrado. Os IPs não serão enviados para o banco de dados."
+fi
+
+exit 0
