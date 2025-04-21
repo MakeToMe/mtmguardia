@@ -90,6 +90,7 @@ if command -v go >/dev/null 2>&1; then
     GOVMAJ=$(echo $GOVERSION | cut -d. -f1)
     GOVMIN=$(echo $GOVERSION | cut -d. -f2)
     GOPATCH=$(echo $GOVERSION | cut -d. -f3)
+    # Só instala se for menor que a versão requerida
     if [ "$GOVMAJ" -lt "$GO_REQUIRED_MAJOR" ] || { [ "$GOVMAJ" -eq "$GO_REQUIRED_MAJOR" ] && [ "$GOVMIN" -lt "$GO_REQUIRED_MINOR" ]; } || { [ "$GOVMAJ" -eq "$GO_REQUIRED_MAJOR" ] && [ "$GOVMIN" -eq "$GO_REQUIRED_MINOR" ] && [ "$GOPATCH" -lt "$GO_REQUIRED_PATCH" ]; }; then
         INSTALL_GO=1
     fi
@@ -177,14 +178,10 @@ fi
 case "$FIREWALL" in
     ufw)
         log "Configurando UFW..."
-        log "[DEBUG] Rodando: yes | ufw enable"
-        yes | ufw enable > /tmp/ufw_enable.log 2>&1
-        log "[DEBUG] Saída yes | ufw enable:"
-        cat /tmp/ufw_enable.log
         log "[DEBUG] Rodando: ufw --force enable"
-        ufw --force enable >> /tmp/ufw_enable.log 2>&1
+        ufw --force enable > /tmp/ufw_enable.log 2>&1
         log "[DEBUG] Saída ufw --force enable:"
-        tail -20 /tmp/ufw_enable.log
+        cat /tmp/ufw_enable.log
         if command -v systemctl >/dev/null 2>&1; then
             log "[DEBUG] Rodando: systemctl enable ufw && systemctl start ufw"
             systemctl enable ufw >> /tmp/ufw_enable.log 2>&1
