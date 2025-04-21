@@ -1,7 +1,15 @@
 #!/bin/bash
 
 # Script de instalação do Guardian - Gerenciador de Firewall
-# Este script deve ser executado com privilégios de root
+
+# Função para exibir mensagens de log
+log() {
+    echo "[GUARDIAN] $1"
+}
+
+# Solicitar string de conexão com o PostgreSQL
+echo "Informe a string de conexão com o PostgreSQL:"
+read -p "> " DB_CONN_STRING
 
 set -e
 
@@ -236,34 +244,8 @@ chmod 600 "$TOKEN_FILE" # Apenas root pode ler
 # Solicitar informações do banco de dados
 log "Configurando acesso ao banco de dados..."
 
-# Verificar se a string de conexão foi fornecida como parâmetro
-DB_CONN_STRING=""
-
-# Verificar se temos parâmetros
-if [ $# -ge 1 ]; then
-    DB_CONN_STRING="$1"
-    log "Usando string de conexão fornecida via parâmetro."
-else
-    # Solicitar string de conexão interativamente se estivermos em um terminal
-    if [ -t 0 ]; then
-        log "Configurando acesso ao banco de dados..."
-        echo "Informe a string de conexão com o PostgreSQL (ou deixe em branco para configurar depois):"
-        read -p "> " DB_CONN_STRING
-        
-        if [ -n "$DB_CONN_STRING" ]; then
-            log "String de conexão configurada."
-        else
-            log "Nenhuma string de conexão fornecida."
-        fi
-    else
-        # Modo não interativo
-        log "Para configurar o acesso ao banco de dados posteriormente, execute:"
-        log "sudo $INSTALL_DIR/bin/guardian setup --db-conn-string='sua_string_de_conexao'"
-    fi
-fi
-
-# Explicar que os IDs serão obtidos automaticamente
-log "Os IDs de servidor e titular serão obtidos automaticamente do banco de dados quando a string de conexão for configurada."
+# Informar que os IDs serão obtidos automaticamente
+log "Os IDs de servidor e titular serão obtidos automaticamente do banco de dados."
 
 # Criar arquivo de configuração
 log "Criando arquivo de configuração..."
