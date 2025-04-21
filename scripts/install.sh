@@ -177,11 +177,18 @@ fi
 case "$FIREWALL" in
     ufw)
         log "Configurando UFW..."
-        # Ativar UFW com máxima compatibilidade
-        yes | ufw enable
-        ufw --force enable
-        systemctl enable ufw
-        systemctl start ufw
+        log "Ativando UFW (yes | ufw enable)..."
+        yes | ufw enable 2>&1 | tee /tmp/ufw_enable.log
+        log "Ativando UFW (ufw --force enable)..."
+        ufw --force enable 2>&1 | tee -a /tmp/ufw_enable.log
+        if command -v systemctl >/dev/null 2>&1; then
+            log "Habilitando e iniciando serviço UFW via systemctl..."
+            systemctl enable ufw 2>&1 | tee -a /tmp/ufw_enable.log
+            systemctl start ufw 2>&1 | tee -a /tmp/ufw_enable.log
+            UFW_SERVICE=$(systemctl is-active ufw)
+        else
+            UFW_SERVICE="unknown"
+        fi
         ufw allow 22/tcp
         ufw allow 4554/tcp
         ufw allow 80/tcp
@@ -198,14 +205,14 @@ case "$FIREWALL" in
         ufw allow 4554/tcp from any to any proto tcp comment 'API IPv6'
         ufw allow 80/tcp from any to any proto tcp comment 'HTTP IPv6'
         ufw allow 443/tcp from any to any proto tcp comment 'HTTPS IPv6'
-        # Checar status
-        STATUS=$(ufw status | grep -i 'Status: active')
-        UFW_SERVICE=$(systemctl is-active ufw)
-        if [ -z "$STATUS" ] || [ "$UFW_SERVICE" != "active" ]; then
-            error "UFW não foi ativado corretamente!"
-        fi
+        log "Status do UFW após ativação:"
         ufw status verbose
+        STATUS=$(ufw status | grep -i 'Status: active')
+        if [ -z "$STATUS" ] || { command -v systemctl >/dev/null 2>&1 && [ "$UFW_SERVICE" != "active" ]; }; then
+            error "UFW não foi ativado corretamente! Veja o log abaixo:\n$(cat /tmp/ufw_enable.log)\nSaída do journalctl:\n$(journalctl -u ufw --no-pager | tail -20)"
+        fi
         ;;
+
 
     iptables)
         log "Configurando iptables..."
