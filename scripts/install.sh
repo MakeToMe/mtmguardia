@@ -366,7 +366,13 @@ bash "$COLETA_SCRIPT" || log "Falha ao executar coleta_lastb.sh"
 
 log "Agendando coleta a cada 5 minutos no cron do root..."
 CRON_JOB="*/5 * * * * /bin/bash $COLETA_SCRIPT"
-(crontab -l 2>/dev/null | grep -Fv "$COLETA_SCRIPT"; echo "$CRON_JOB") | crontab -
+# Força o agendamento mesmo se não houver crontab anterior
+( crontab -l 2>/dev/null | grep -Fv "$COLETA_SCRIPT"; echo "$CRON_JOB" ) | sort | uniq | grep -v '^$' | crontab -
+if sudo crontab -l | grep -q "$COLETA_SCRIPT"; then
+  log "Agendamento do cron realizado com sucesso."
+else
+  log "[ERRO] Não foi possível agendar o cron automaticamente. Favor verificar permissões."
+fi
 log "Coleta agendada e pasta logs/arquivo ips_bloqueio.txt garantidos."
 
 # Exibir informações sobre o token de autenticação
