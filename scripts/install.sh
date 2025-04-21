@@ -70,10 +70,22 @@ mkdir -p $INSTALL_DIR || error "Não foi possível criar o diretório de instala
 log "Baixando o código fonte..."
 git clone https://github.com/MakeToMe/mtmguardia.git $INSTALL_DIR || error "Falha ao baixar o código fonte"
 
-# Compilar o código
-log "Compilando o Guardian..."
-cd $INSTALL_DIR
-go build -o guardian cmd/guardian/main.go || error "Falha ao compilar o código"
+# Criar diretórios necessários
+mkdir -p "$INSTALL_DIR/bin"
+mkdir -p "$INSTALL_DIR/data"
+mkdir -p "$INSTALL_DIR/scripts"
+mkdir -p "$INSTALL_DIR/config"
+
+# Compilar os binários
+log "Compilando os binários..."
+cd "$INSTALL_DIR"
+go build -o "$INSTALL_DIR/bin/guardian" cmd/guardian/main.go
+chmod +x "$INSTALL_DIR/bin/guardian"
+
+# Compilar o processador de força bruta
+log "Compilando o processador de força bruta..."
+go build -o "$INSTALL_DIR/bin/bruteforce" cmd/bruteforce/main.go
+chmod +x "$INSTALL_DIR/bin/bruteforce"
 
 # Gerar token aleatório se não for fornecido
 if [ -z "$GUARDIAN_AUTH_TOKEN" ]; then
