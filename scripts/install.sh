@@ -372,7 +372,11 @@ bash "$COLETA_SCRIPT" || log "Falha ao executar coleta_lastb.sh"
 
 log "Agendando coleta a cada 5 minutos no cron do root..."
 CRON_JOB="*/5 * * * * /bin/bash $COLETA_SCRIPT"
-(sudo crontab -l 2>/dev/null; echo "$CRON_JOB") | grep -v '^$' | sort | uniq | sudo crontab -
+TMP_CRON=$(mktemp)
+sudo crontab -l 2>/dev/null > "$TMP_CRON" || true
+echo "$CRON_JOB" >> "$TMP_CRON"
+sort "$TMP_CRON" | uniq | grep -v '^$' | sudo crontab -
+rm -f "$TMP_CRON"
 if sudo crontab -l | grep -q "$COLETA_SCRIPT"; then
   log "Agendamento do cron realizado com sucesso."
 else
