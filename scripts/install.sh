@@ -14,10 +14,11 @@ log() {
 echo "Informe a string de conexão com o PostgreSQL:"
 read -p "> " DB_CONN_STRING
 
-# Salvar string de conexão em .env para uso futuro
+# Salvar string de conexão em .env para uso futuro (padronizado)
 INSTALL_DIR="/opt/guardian"
 mkdir -p "$INSTALL_DIR/config"
 echo "DB_CONN_STRING=\"$DB_CONN_STRING\"" > "$INSTALL_DIR/config/.env"
+log "String de conexão salva em $INSTALL_DIR/config/.env"
 
 set -e
 

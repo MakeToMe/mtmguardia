@@ -9,5 +9,7 @@ LOG_DIR="$PROJ_DIR/logs"
 ARQUIVO="$LOG_DIR/ips_bloqueio.txt"
 
 mkdir -p "$LOG_DIR"
+echo "[DEBUG] Pasta de logs garantida: $LOG_DIR"
 
 lastb | grep -Eo '([0-9]{1,3}\.){3}[0-9]{1,3}' | sort | uniq -c | sort -nr | awk '$1 >= 3' > "$ARQUIVO"
+echo "[DEBUG] Arquivo de IPs gerado: $ARQUIVO"
