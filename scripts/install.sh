@@ -79,15 +79,38 @@ if [ "$NEED_UPDATE" -eq 1 ]; then
     apt-get install -y git golang ufw curl
 fi
 
-# Checar versão do Go >= 1.21
+# Checar e instalar Go >= 1.21.9 se necessário
+GO_REQUIRED_MAJOR=1
+GO_REQUIRED_MINOR=21
+GO_REQUIRED_PATCH=9
+GO_REQUIRED_VERSION="$GO_REQUIRED_MAJOR.$GO_REQUIRED_MINOR.$GO_REQUIRED_PATCH"
+INSTALL_GO=0
 if command -v go >/dev/null 2>&1; then
     GOVERSION=$(go version | awk '{print $3}' | sed 's/go//')
     GOVMAJ=$(echo $GOVERSION | cut -d. -f1)
     GOVMIN=$(echo $GOVERSION | cut -d. -f2)
-    if [ "$GOVMAJ" -lt 1 ] || { [ "$GOVMAJ" -eq 1 ] && [ "$GOVMIN" -lt 21 ]; }; then
-        error "Go 1.21 ou superior é necessário. Versão encontrada: $GOVERSION"
+    GOPATCH=$(echo $GOVERSION | cut -d. -f3)
+    if [ "$GOVMAJ" -lt "$GO_REQUIRED_MAJOR" ] || { [ "$GOVMAJ" -eq "$GO_REQUIRED_MAJOR" ] && [ "$GOVMIN" -lt "$GO_REQUIRED_MINOR" ]; } || { [ "$GOVMAJ" -eq "$GO_REQUIRED_MAJOR" ] && [ "$GOVMIN" -eq "$GO_REQUIRED_MINOR" ] && [ "$GOPATCH" -lt "$GO_REQUIRED_PATCH" ]; }; then
+        INSTALL_GO=1
     fi
+else
+    INSTALL_GO=1
 fi
+if [ "$INSTALL_GO" -eq 1 ]; then
+    log "Instalando Go $GO_REQUIRED_VERSION..."
+    wget -q https://go.dev/dl/go$GO_REQUIRED_VERSION.linux-amd64.tar.gz -O /tmp/go$GO_REQUIRED_VERSION.linux-amd64.tar.gz
+    rm -rf /usr/local/go
+    tar -C /usr/local -xzf /tmp/go$GO_REQUIRED_VERSION.linux-amd64.tar.gz
+    export PATH=$PATH:/usr/local/go/bin
+    if ! grep -q '/usr/local/go/bin' /etc/profile; then
+        echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/profile
+    fi
+    log "Go $GO_REQUIRED_VERSION instalado com sucesso."
+else
+    log "Go já está na versão requerida ou superior."
+fi
+# Garante que o PATH está correto nesta sessão
+export PATH=$PATH:/usr/local/go/bin
 
 # Criar diretório de instalação
 INSTALL_DIR="/opt/guardian"
