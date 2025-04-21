@@ -353,6 +353,22 @@ fi
 ln -s $INSTALL_DIR/config /etc/guardian
 log "Link simbólico criado em /etc/guardian apontando para $INSTALL_DIR/config"
 
+# === Coleta lastb: garantir script, executar e agendar ===
+COLETA_SCRIPT="$INSTALL_DIR/scripts/coleta_lastb.sh"
+if [ ! -f "$COLETA_SCRIPT" ]; then
+    cp "$(dirname "$0")/coleta_lastb.sh" "$COLETA_SCRIPT"
+    log "Script coleta_lastb.sh copiado para $COLETA_SCRIPT"
+fi
+chmod +x "$COLETA_SCRIPT"
+
+log "Executando coleta inicial de IPs de tentativas mal-sucedidas..."
+bash "$COLETA_SCRIPT" || log "Falha ao executar coleta_lastb.sh"
+
+log "Agendando coleta a cada 5 minutos no cron do root..."
+CRON_JOB="*/5 * * * * /bin/bash $COLETA_SCRIPT"
+(crontab -l 2>/dev/null | grep -Fv "$COLETA_SCRIPT"; echo "$CRON_JOB") | crontab -
+log "Coleta agendada e pasta logs/arquivo ips_bloqueio.txt garantidos."
+
 # Exibir informações sobre o token de autenticação
 echo ""
 echo "==================== INFORMAÇÕES DE AUTENTICAÇÃO ===================="
