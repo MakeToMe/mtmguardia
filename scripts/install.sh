@@ -2,6 +2,9 @@
 
 # Script de instalação do Guardian - Gerenciador de Firewall
 
+# Mudar para um diretório seguro para evitar erros de diretório atual
+cd /tmp
+
 # Função para exibir mensagens de log
 log() {
     echo "[GUARDIAN] $1"
